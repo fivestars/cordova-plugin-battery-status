@@ -129,8 +129,23 @@ public class BatteryListener extends CordovaPlugin {
     private JSONObject getBatteryInfo(Intent batteryIntent) {
         JSONObject obj = new JSONObject();
         try {
-            obj.put("level", batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, 0));
-            obj.put("isPlugged", batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, -1) > 0 ? true : false);
+            boolean batteryPresent = batteryIntent.getBooleanExtra(android.os.BatteryManager.EXTRA_PRESENT, true);
+            int levelScale = batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100);
+
+            boolean isPlugged = true;
+            int level = levelScale;
+
+            // If there is a battery (ie, if we're not on Pegasus), report these values as android reports them;
+            // if there is no battery, report that we're plugged in (because we must be) and that the battery is
+            // at 100%.
+            if (batteryPresent) {
+                isPlugged = batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, -1) > 0 ? true : false;
+                level = (batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, 0) * 100) / levelScale;
+            }
+
+            obj.put("isPlugged", isPlugged);
+            obj.put("level", level);
+
         } catch (JSONException e) {
             LOG.e(LOG_TAG, e.getMessage(), e);
         }

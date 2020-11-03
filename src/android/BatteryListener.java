@@ -132,14 +132,19 @@ public class BatteryListener extends CordovaPlugin {
             boolean batteryPresent = batteryIntent.getBooleanExtra(android.os.BatteryManager.EXTRA_PRESENT, true);
             int levelScale = batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100);
 
-            // Work around the fact that Pegasus doesn't report cable plugged state correctly.
-            obj.put("isPlugged", batteryPresent
-                    ? (batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, -1) > 0 ? true : false)
-                    : true);  // If there's no battery, then we *must* be plugged in.
+            boolean isPlugged = true;
+            int level = levelScale;
 
-            obj.put("level", batteryPresent
-                    ? ((batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, 0) * 100) / levelScale)
-                    : levelScale);  // If there's no battery, lie to cts/mtab and say it's fully charged
+            // Work around the fact that Pegasus doesn't report cable plugged state correctly.  If there *is*
+            // a battery (ie, if we're not on Pegasus), report these values as android reports them; if there
+            // is no battery, report that we're plugged in (because we must be) and that the battery is at 100%.
+            if (batteryPresent) {
+                isPlugged = batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, -1) > 0 ? true : false;
+                level = (batteryIntent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, 0) * 100) / levelScale;
+            }
+
+            obj.put("isPlugged", isPlugged);
+            obj.put("level", level);
 
         } catch (JSONException e) {
             LOG.e(LOG_TAG, e.getMessage(), e);
